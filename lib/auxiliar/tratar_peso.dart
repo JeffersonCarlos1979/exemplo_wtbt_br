@@ -59,10 +59,10 @@ class TratarPeso {
     int casasDecimais = (data[1] >> 4);
 
     int pesoInt = BitConverter.toInt32(data, 11);
-    double peso = pesoInt * pow(10, -casasDecimais);
+    double peso = (pesoInt * pow(10, -casasDecimais)).toDouble();
 
     int taraInt = BitConverter.toInt32(data, 7);
-    double tara = taraInt * pow(10, -casasDecimais);
+    double tara = (taraInt * pow(10, -casasDecimais)).toDouble();
 
     bool isBruto = ((data[2] & 1) == 1);
     bool isEstavel = ((data[2] & 2) == 2);
@@ -87,7 +87,6 @@ class TratarPeso {
       pesoLiqFormatado = peso.toStringAsFixed(casasDecimais);
       taraFormatada = tara.toStringAsFixed(casasDecimais);
     }
-
 
     this.casasDecimais = casasDecimais;
     this.nivelBateria = nivelBateria;

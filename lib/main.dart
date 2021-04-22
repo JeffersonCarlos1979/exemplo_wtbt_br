@@ -10,7 +10,7 @@ void main() {
   runApp(MyApp());
 }
 
-//Repositório alterado para GitHub 3
+//Repositório alterado para GitHub
 
 class MyApp extends StatelessWidget {
   @override
@@ -350,6 +350,9 @@ class DeviceScreen extends StatelessWidget {
                   onPressed: () {
                     _selecionarPlataforma(context);
                   },
+                  style: ButtonStyle(
+
+                  ),
                   child: Text('Selecionar plataforma',
                     style: TextStyle(fontSize: fonteSizeTara),
                   ),
@@ -394,7 +397,6 @@ class DeviceScreen extends StatelessWidget {
       }
     }
 
-
     _pesoCharacteristic.setNotifyValue(true);
     _pesoCharacteristic.value.listen((data) {
       if (_tratarPeso.lerWtBT_BR(data)) {
@@ -413,6 +415,8 @@ class DeviceScreen extends StatelessWidget {
       }
     });
   }
+
+
 
   Future<void> _tarar() async {
     _enviarComando("${Comandos.TARAR};");
