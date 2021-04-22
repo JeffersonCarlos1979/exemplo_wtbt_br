@@ -396,7 +396,7 @@ class DeviceScreen extends StatelessWidget {
         _comandoCharacteristic = c;
       }
     }
-
+//Só pra mudar
     _pesoCharacteristic.setNotifyValue(true);
     _pesoCharacteristic.value.listen((data) {
       if (_tratarPeso.lerWtBT_BR(data)) {
