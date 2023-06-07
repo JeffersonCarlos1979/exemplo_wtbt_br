@@ -3,9 +3,9 @@ import 'package:exemplo_wtbt/constantes/wtbt.dart';
 import 'bit_converter.dart';
 
 class TratarPeso {
-  static final String pesoInvalido = "------";
-  static final String falhaAd = "F. A/D";
-  static final String sobrecarga = "++OL++";
+  static const String pesoInvalido = "------";
+  static const String falhaAd = "F. A/D";
+  static const String sobrecarga = "++OL++";
 
   int imagemIndexBateria = 0;
   bool isPesoOk = false;
@@ -80,10 +80,10 @@ class TratarPeso {
 
     this.casasDecimais = casasDecimais;
     this.nivelBateria = nivelBateria;
-    this.imagemIndexBateria = imagemBateria;
-    this.pesoLiq = peso;
+    imagemIndexBateria = imagemBateria;
+    pesoLiq = peso;
     this.tara = tara;
-    this.pesoBruto = peso + tara;
+    pesoBruto = peso + tara;
     this.isBruto = isBruto;
     this.isEstavel = isEstavel;
     this.isFalhaAd = isFalhaAd;
