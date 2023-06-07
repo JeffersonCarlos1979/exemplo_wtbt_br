@@ -1,31 +1,25 @@
 import 'dart:math';
 import 'package:exemplo_wtbt/constantes/wtbt.dart';
 import 'bit_converter.dart';
-import 'package:intl/intl.dart';
-
-/**
- * Created by jeffe on 20/11/2020.
- */
-
 
 class TratarPeso {
-  static final String PESO_INVALIDO = "------";
-  static final String FALHA_AD = "F. A/D";
-  static final String SOBRECARGA = "++OL++";
+  static final String pesoInvalido = "------";
+  static final String falhaAd = "F. A/D";
+  static final String sobrecarga = "++OL++";
 
-  int imagemIndexBateria;
+  int imagemIndexBateria = 0;
   bool isPesoOk = false;
-  int casasDecimais;
-  int nivelBateria;
-  double pesoLiq;
-  double tara;
-  double pesoBruto;
-  bool isBruto;
-  bool isEstavel;
-  bool isFalhaAd;
-  String pesoLiqFormatado;
-  String taraFormatada;
-  String unidade;
+  int casasDecimais = 0;
+  int nivelBateria = 0;
+  double pesoLiq = 0.0;
+  double tara = 0.0;
+  double pesoBruto = 0.0;
+  bool isBruto = false;
+  bool isEstavel = false;
+  bool isFalhaAd = false;
+  String pesoLiqFormatado = '';
+  String taraFormatada = '';
+  String unidade = '';
 
   final unidades = [
     '',
@@ -35,24 +29,20 @@ class TratarPeso {
     'lb',
   ];
 
-
-
-
   //Essa funçãoretorna true se o dado for válido
-  bool lerWtBT_BR(List<int> data) {
-
-    if (data?.length != 15) return false;
+  bool lerWtBtbr(List<int> data) {
+    if (data.length != 15) return false;
 
     int nivelBateria = data[0];
     int imagemBateria;
     if (nivelBateria > 75) {
-      imagemBateria = ConstantesWtbt.BATERIA_100;
+      imagemBateria = ConstantesWtbt.bateria100;
     } else if (nivelBateria > 50) {
-      imagemBateria = ConstantesWtbt.BATERIA_75;
+      imagemBateria = ConstantesWtbt.bateria75;
     } else if (nivelBateria > 25) {
-      imagemBateria = ConstantesWtbt.BATERIA_50;
+      imagemBateria = ConstantesWtbt.bateria50;
     } else {
-      imagemBateria = ConstantesWtbt.BATERIA_25;
+      imagemBateria = ConstantesWtbt.bateria25;
     }
 
     int unidade = (data[1] & 0xf);
@@ -76,12 +66,12 @@ class TratarPeso {
 
     if (isFalhaAd) {
       isPesoOk = false;
-      pesoLiqFormatado = FALHA_AD;
-      taraFormatada = PESO_INVALIDO;
+      pesoLiqFormatado = falhaAd;
+      taraFormatada = pesoInvalido;
     } else if (isSobrecarga) {
       isPesoOk = false;
-      pesoLiqFormatado = SOBRECARGA;
-      taraFormatada = PESO_INVALIDO;
+      pesoLiqFormatado = sobrecarga;
+      taraFormatada = pesoInvalido;
     } else {
       isPesoOk = true;
       pesoLiqFormatado = peso.toStringAsFixed(casasDecimais);
@@ -105,5 +95,3 @@ class TratarPeso {
     return true;
   }
 }
-
-

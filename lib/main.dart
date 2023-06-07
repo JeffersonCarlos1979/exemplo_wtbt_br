@@ -1,8 +1,11 @@
+import 'dart:async';
+
 import 'package:exemplo_wtbt/auxiliar/tratar_peso.dart';
 import 'package:exemplo_wtbt/constantes/wtbt.dart';
 import 'package:exemplo_wtbt/widgets.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_blue/flutter_blue.dart';
+import 'package:flutter_blue_plus/flutter_blue_plus.dart';
 
 //https://pub.dev/packages/flutter_blue
 
@@ -18,7 +21,7 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       color: Colors.lightBlue,
       home: StreamBuilder<BluetoothState>(
-          stream: FlutterBlue.instance.state,
+          stream: FlutterBluePlus.instance.state,
           initialData: BluetoothState.unknown,
           builder: (c, snapshot) {
             final state = snapshot.data;
@@ -32,9 +35,9 @@ class MyApp extends StatelessWidget {
 }
 
 class BluetoothOffScreen extends StatelessWidget {
-  const BluetoothOffScreen({Key key, this.state}) : super(key: key);
+  final BluetoothState? state;
 
-  final BluetoothState state;
+  const BluetoothOffScreen({super.key, this.state});
 
   @override
   Widget build(BuildContext context) {
@@ -53,8 +56,8 @@ class BluetoothOffScreen extends StatelessWidget {
               'Bluetooth Adapter is ${state != null ? state.toString().substring(15) : 'not available'}.',
               style: Theme.of(context)
                   .primaryTextTheme
-                  .subhead
-                  .copyWith(color: Colors.white),
+                  .titleMedium
+                  ?.copyWith(color: Colors.white),
             ),
           ],
         ),
@@ -64,7 +67,7 @@ class BluetoothOffScreen extends StatelessWidget {
 }
 
 class FindDevicesScreen extends StatelessWidget {
-  FindDevicesScreen({Key key}) : super(key: key) {
+  FindDevicesScreen({super.key}) {
     _startScan();
   }
 
@@ -80,65 +83,81 @@ class FindDevicesScreen extends StatelessWidget {
           child: Column(
             children: <Widget>[
               StreamBuilder<List<ScanResult>>(
-                stream: FlutterBlue.instance.scanResults,
+                stream: FlutterBluePlus.instance.scanResults,
                 initialData: [],
-                builder: (c, snapshot) => Column(
-                  children: snapshot.data
-                      .map(
-                        (r) => ScanResultTile(
-                          result: r,
-                          onTap: () {
-                            FlutterBlue.instance.stopScan();
-                            Navigator.pop(context, r.device);
-                          },
-                        ),
-                      )
-                      .toList(),
-                ),
+                builder: (c, snapshot) {
+                  if (!snapshot.hasData) {
+                    return Container();
+                  }
+                  return Column(
+                    children: snapshot.data!
+                        .map(
+                          (r) => ScanResultTile(
+                            result: r,
+                            onTap: () {
+                              FlutterBluePlus.instance.stopScan();
+                              Navigator.pop(context, r.device);
+                            },
+                          ),
+                        )
+                        .toList(),
+                  );
+                },
               ),
             ],
           ),
         ),
       ),
       floatingActionButton: StreamBuilder<bool>(
-        stream: FlutterBlue.instance.isScanning,
+        stream: FlutterBluePlus.instance.isScanning,
         initialData: false,
         builder: (c, snapshot) {
-          if (snapshot.data) {
-            return FloatingActionButton(
-              child: Icon(Icons.stop),
-              onPressed: () => FlutterBlue.instance.stopScan(),
-              backgroundColor: Colors.red,
-            );
-          } else {
-            return FloatingActionButton(
-                child: Icon(Icons.search), onPressed: () => _startScan());
-          }
+          final isScanning = snapshot.data;
+          return FloatingActionButton(
+            child: isScanning == true ? Icon(Icons.stop) : Icon(Icons.search),
+            onPressed: () => isScanning == null
+                ? null
+                : isScanning
+                    ? FlutterBluePlus.instance.stopScan()
+                    : _startScan(),
+            backgroundColor: isScanning == true ? null : Colors.red,
+          );
         },
       ),
     );
   }
 
   _startScan() {
-    FlutterBlue.instance.startScan(timeout: Duration(seconds: 10));
+    FlutterBluePlus.instance.startScan(timeout: Duration(seconds: 10));
   }
 }
 
-class DeviceScreen extends StatelessWidget {
+class DeviceScreen extends StatefulWidget {
+  DeviceScreen({super.key});
+  @override
+  State<DeviceScreen> createState() => _DeviceScreenState();
+}
+
+class _DeviceScreenState extends State<DeviceScreen> {
   final TratarPeso _tratarPeso = TratarPeso();
-  BluetoothDevice device;
-  BluetoothService _wtBtService;
-  BluetoothCharacteristic _pesoCharacteristic;
-  BluetoothCharacteristic _comandoCharacteristic;
+  BluetoothDevice? _device;
+  BluetoothService? _wtbtService;
+  BluetoothCharacteristic? _pesoCharacteristic;
+  BluetoothCharacteristic? _comandoCharacteristic;
 
   //Notificadores que auxiliam a alterar as partes da UI correspondente aos valores e status do peso
   final _bateriaNotifier = ValueNotifier<int>(0);
+
   final _isBrutoNotifier = ValueNotifier<bool>(true);
+
   final _isEstavelNotifier = ValueNotifier<bool>(true);
+
   final _unidadeNotifier = ValueNotifier<String>('kg');
-  final _campoPesoNotifier = ValueNotifier<String>(TratarPeso.PESO_INVALIDO);
+
+  final _campoPesoNotifier = ValueNotifier<String>(TratarPeso.pesoInvalido);
+
   final _campoTaraNotifier =
-      ValueNotifier<String>('Tara: ${TratarPeso.PESO_INVALIDO} kg');
+      ValueNotifier<String>('Tara: ${TratarPeso.pesoInvalido} kg');
 
   final _imagens = [
     'images/bateria_25.png',
@@ -147,7 +166,7 @@ class DeviceScreen extends StatelessWidget {
     'images/bateria_100.png',
   ];
 
-  DeviceScreen({Key key, this.device}) : super(key: key);
+  StreamSubscription<List<int>>? _pesoSubscription;
 
   @override
   Widget build(BuildContext context) {
@@ -315,7 +334,7 @@ class DeviceScreen extends StatelessWidget {
                 children: [
                   Expanded(
                     flex: 1,
-                    child: FlatButton(
+                    child: ElevatedButton(
                       child: Text(
                         "Tarar",
                         style: TextStyle(fontSize: fonteSizeTara),
@@ -327,7 +346,7 @@ class DeviceScreen extends StatelessWidget {
                   ),
                   Expanded(
                     flex: 1,
-                    child: FlatButton(
+                    child: ElevatedButton(
                       child: Text(
                         "Zerar",
                         style: TextStyle(fontSize: fonteSizeTara),
@@ -350,10 +369,9 @@ class DeviceScreen extends StatelessWidget {
                   onPressed: () {
                     _selecionarPlataforma(context);
                   },
-                  style: ButtonStyle(
-
-                  ),
-                  child: Text('Selecionar plataforma',
+                  style: ButtonStyle(),
+                  child: Text(
+                    'Selecionar plataforma',
                     style: TextStyle(fontSize: fonteSizeTara),
                   ),
                 ),
@@ -365,43 +383,63 @@ class DeviceScreen extends StatelessWidget {
 
   void _selecionarPlataforma(BuildContext context) async {
     await _pesoCharacteristic?.setNotifyValue(false);
-    device?.disconnect();
+    _device?.disconnect();
 
-    device = await Navigator.push(
+    _device = await Navigator.push(
       context,
       MaterialPageRoute(builder: (context) => FindDevicesScreen()),
     );
-    print('Device ${device?.name}');
+    print('Device ${_device?.name}');
 
-    if (device == null) return;
+    if (_device == null) return;
     _conectar();
   }
 
   Future<void> _conectar() async {
-    await device.connect();
+    await _device!.connect();
 
-    List<BluetoothService> services = await device.discoverServices();
+    _wtbtService = null;
+    List<BluetoothService> services = await _device!.discoverServices();
+
     services.forEach((service) {
-      if (service.uuid == ConstantesWtbt.UUID_WTBT_SERVICE_SERIVCE) {
-        _wtBtService = service;
-
+      if (service.uuid == ConstantesWtbt.uuidWtbtService) {
+        _wtbtService = service;
       }
     });
 
+    if (_wtbtService == null) {
+      if (kDebugMode) {
+        print('Não foi possível localizar o serviço');
+      }
+      return;
+    }
+
+    _pesoCharacteristic = null;
+    _comandoCharacteristic = null;
     // Reads all characteristics
-    for (BluetoothCharacteristic c in _wtBtService.characteristics) {
-      if (c.uuid == ConstantesWtbt.UUID_CHAR_PESO) {
+    for (BluetoothCharacteristic c in _wtbtService!.characteristics) {
+      if (c.uuid == ConstantesWtbt.uuidCharPeso) {
         _pesoCharacteristic = c;
-      } else if (c.uuid == ConstantesWtbt.UUID_CHAR_COMANDO) {
+      } else if (c.uuid == ConstantesWtbt.uuidCharComando) {
         _comandoCharacteristic = c;
       }
     }
 
-    _pesoCharacteristic.setNotifyValue(true);
-    _pesoCharacteristic.value.listen((data) {
-      if (_tratarPeso.lerWtBT_BR(data)) {
+    if (_pesoCharacteristic == null || _comandoCharacteristic == null) {
+      if (kDebugMode) {
+        print('Não foi possível localizar o charactristic');
+      }
+      return;
+    }
+
+    //Habilita o notify/indicator do dispositivo para começar a receber a transmissão de peso
+    _pesoCharacteristic!.setNotifyValue(true);
+
+    await _pesoSubscription?.cancel();
+    _pesoSubscription = _pesoCharacteristic!.value.listen((data) {
+      if (_tratarPeso.lerWtBtbr(data)) {
         /*
-        Modificar os campos ValueBNotifiers faz com que os Widgets ValueListenableBuilder associados
+        Modificar os campos ValueNotifiers faz com que os Widgets ValueListenableBuilder associados
         se modifiquem automaticamente com os novos valores.
          */
 
@@ -416,21 +454,19 @@ class DeviceScreen extends StatelessWidget {
     });
   }
 
-
-
   Future<void> _tarar() async {
-    _enviarComando("${Comandos.TARAR};");
+    _enviarComando("${Comandos.tarar};");
   }
 
   Future<void> _zerar() async {
-    _enviarComando("${Comandos.ZERAR};");
+    _enviarComando("${Comandos.zerar};");
   }
 
   Future<void> _enviarComando(String commandData) async {
     var buff = commandData.codeUnits;
 
     try {
-      _comandoCharacteristic.write(buff);
+      _comandoCharacteristic?.write(buff);
     } catch (e) {
       print(e);
     }
